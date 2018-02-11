@@ -118,3 +118,27 @@ func TestRouterForNonExistentRoute(t *testing.T) {
 	}
 
 }
+
+func TestStaticFileServer(t *testing.T) {
+	r := newRouter()
+	mockServer := httptest.NewServer(r)
+
+	resp, err := http.Get(mockServer.URL + assets)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("status should be ok, got %v", resp.StatusCode)
+	}
+
+	// It isn't wise to test the entire content of the HTML file.
+	// Instead, we test that the content-type header is "text/html; charset=utf-8"
+	// so that we know that an html file has been served
+	contentType := resp.Header.Get("Content-Type")
+	expected := "text/html; charset=utf-8"
+
+	if expected != contentType {
+		t.Errorf("Wrong content type; got %v, expected %v", contentType, expected)
+	}
+}
