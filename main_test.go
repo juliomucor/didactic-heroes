@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -47,4 +48,73 @@ func TestHandler(t *testing.T) {
 	if !strings.Contains(actual, expected) {
 		t.Errorf("handler returned unexpected body: got %v want %v", actual, expected)
 	}
+}
+
+func TestRouter(t *testing.T) {
+	// Instantiate the router using the constructor function that
+	// we defined previously
+	r := newRouter()
+
+	// Create a new server using the "httptest" libraries `NewServer` method
+	// Documentation : https://golang.org/pkg/net/http/httptest/#NewServer
+	mockServer := httptest.NewServer(r)
+
+	// The mock server we created runs a server and exposes its location in the
+	// URL attribute
+	// We make a GET request to the "hello" route we defined in the router
+	resp, err := http.Get(mockServer.URL + "/hello")
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("status should be ok: got %v", resp.StatusCode)
+	}
+
+	defer resp.Body.Close()
+	// read the body into a bunch of bytes (b)
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	respString := string(b)
+	expected := "Hello From Mars!!!"
+	if respString != expected {
+		t.Errorf("response should be %v: got %v", expected, respString)
+	}
+}
+
+// Now we know that every time we hit the GET /hello route, we get a response of hello world. If we hit any other route, it should respond with a 404. In fact, let’s write a test for precisely this requirement
+func TestRouterForNonExistentRoute(t *testing.T) {
+	r := newRouter()
+	mockServer := httptest.NewServer(r)
+	// Most of the code is similar. The only difference is that now we make a
+	//request to a route we know we didn't define, like the `POST /hello` route.
+	resp, err := http.Post(mockServer.URL+"/hello", "", nil)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// We want our status to be 405 (method not allowed)
+	if resp.StatusCode != http.StatusMethodNotAllowed {
+		t.Errorf("Status should be 405, got %d", resp.StatusCode)
+	}
+
+	// The code to test the body is also mostly the same, except this time, we
+	// expect an empty body
+	defer resp.Body.Close()
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	respString := string(b)
+	expected := ""
+
+	if respString != expected {
+		t.Errorf("Response should be %s, got %s", expected, respString)
+	}
+
 }
