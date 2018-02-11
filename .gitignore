@@ -1,0 +1,7 @@
+vendor/*/
+#vendor/github/*
+#vendor/golang/*
+.env
+!vendor/vendor.json
+*App
+.vscode/settings.json
